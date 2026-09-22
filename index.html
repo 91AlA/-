@@ -1,0 +1,667 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>雪花落下∣赛文低下</title>
+<style>
+  :root{
+    --ice:#bfe6ff;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{
+    font-family:"PingFang SC","Hiragino Sans GB","Microsoft YaHei",system-ui,-apple-system,sans-serif;
+    color:#e9f6ff;
+    background:
+      radial-gradient(1200px 800px at 15% -10%, #1b4a70 0%, transparent 60%),
+      radial-gradient(900px 700px at 90% 8%, #123a5c 0%, transparent 55%),
+      linear-gradient(180deg,#081726 0%,#050f1c 45%,#02070e 100%);
+    background-attachment:fixed;
+    overflow-x:hidden;
+    -webkit-tap-highlight-color:transparent;
+  }
+
+  #snow{position:fixed;inset:0;width:100%;height:100%;z-index:0;pointer-events:none;}
+  .vignette{
+    position:fixed;inset:0;z-index:1;pointer-events:none;
+    background:radial-gradient(circle at 50% 38%, transparent 42%, rgba(0,0,0,.55) 100%);
+  }
+
+  .hud{
+    position:fixed;top:0;left:0;right:0;z-index:20;
+    display:flex;justify-content:space-between;align-items:flex-start;gap:16px;
+    padding:clamp(14px,2.5vw,28px) clamp(16px,3vw,40px);
+    pointer-events:none;
+  }
+  .brand h1{
+    font-size:clamp(18px,2.4vw,30px);
+    font-weight:900;letter-spacing:.12em;
+    background:linear-gradient(180deg,#ffffff,#b9e2ff 70%,#7cc0f0);
+    -webkit-background-clip:text;background-clip:text;color:transparent;
+    filter:drop-shadow(0 0 14px rgba(130,205,255,.6));
+    animation:brandGlow 4.5s ease-in-out infinite;
+  }
+  .brand p{
+    margin-top:7px;
+    font-size:clamp(11px,1.05vw,14px);
+    color:#9dc9e8;letter-spacing:.18em;opacity:.88;
+    text-shadow:0 0 10px rgba(110,190,240,.4);
+  }
+  @keyframes brandGlow{
+    0%,100%{filter:drop-shadow(0 0 12px rgba(130,205,255,.45));}
+    50%{filter:drop-shadow(0 0 26px rgba(170,225,255,.95));}
+  }
+
+  .clock{text-align:right;flex:0 0 auto;}
+  .clock-label{
+    display:block;
+    font-size:11px;letter-spacing:.34em;color:#8ab9d9;opacity:.85;
+    margin-bottom:2px;
+  }
+  .clock-time{
+    font-size:clamp(24px,3vw,40px);
+    font-weight:800;
+    font-variant-numeric:tabular-nums;
+    letter-spacing:.06em;
+    color:#f0f9ff;
+    text-shadow:0 0 20px rgba(120,200,255,.75), 0 0 44px rgba(90,170,240,.45);
+    line-height:1.1;
+  }
+  .clock-date{
+    margin-top:4px;
+    font-size:clamp(14px,1.6vw,22px);
+    font-weight:800;
+    letter-spacing:.08em;
+    color:#cfe9ff;
+    text-shadow:0 0 14px rgba(120,200,255,.5);
+    font-variant-numeric:tabular-nums;
+  }
+
+  main{position:relative;z-index:5;}
+
+  .content{
+    position:relative;
+    max-width:1120px;
+    margin:0 auto;
+    padding:clamp(88px,12.5vh,140px) clamp(16px,4vw,60px) 175px;
+  }
+
+  .sec-head{text-align:center;padding:2vh 0 6vh;}
+  .sec-title{
+    font-size:clamp(30px,6vw,58px);
+    font-weight:900;
+    letter-spacing:.14em;
+    background:linear-gradient(180deg,#ffffff,#b6dfff 55%,#6fb6ee);
+    -webkit-background-clip:text;background-clip:text;color:transparent;
+    opacity:0;transform:translateY(42px) scale(.96);
+    transition:opacity 1s cubic-bezier(.16,1,.3,1), transform 1s cubic-bezier(.16,1,.3,1);
+  }
+  .sec-sub{
+    margin-top:18px;
+    font-size:clamp(13px,1.5vw,17px);
+    letter-spacing:.22em;
+    color:#a6cfe9;
+    opacity:0;transform:translateY(24px);
+    transition:opacity .9s cubic-bezier(.16,1,.3,1) .22s, transform .9s cubic-bezier(.16,1,.3,1) .22s;
+  }
+  .sec-head.show .sec-title{
+    opacity:1;transform:none;
+    animation:titleGlow 3.6s ease-in-out infinite 1s;
+  }
+  .sec-head.show .sec-sub{opacity:1;transform:none;}
+  @keyframes titleGlow{
+    0%,100%{filter:drop-shadow(0 0 14px rgba(120,200,255,.4));}
+    50%{filter:drop-shadow(0 0 34px rgba(160,225,255,.95));}
+  }
+
+  .cards{
+    display:grid;
+    grid-template-columns:repeat(auto-fill,minmax(310px,1fr));
+    gap:20px;
+  }
+  .card{
+    position:relative;
+    padding:22px 22px 24px;
+    border-radius:18px;
+    background:linear-gradient(160deg, rgba(120,190,255,.14), rgba(255,255,255,.035) 45%, rgba(120,190,255,.07));
+    border:1px solid rgba(160,215,255,.22);
+    backdrop-filter:blur(12px);
+    -webkit-backdrop-filter:blur(12px);
+    box-shadow:0 12px 40px rgba(0,10,25,.5), inset 0 1px 0 rgba(255,255,255,.12);
+    overflow:hidden;
+    opacity:0;transform:translateY(38px);
+    transition:
+      opacity .85s cubic-bezier(.16,1,.3,1) var(--d,0s),
+      transform .85s cubic-bezier(.16,1,.3,1) var(--d,0s),
+      box-shadow .4s ease, border-color .4s ease;
+  }
+  .card.show{opacity:1;transform:translateY(0);}
+  .card.show:hover{
+    transform:translateY(-7px);
+    border-color:rgba(190,232,255,.55);
+    box-shadow:0 22px 60px rgba(20,90,150,.55), inset 0 1px 0 rgba(255,255,255,.22);
+  }
+  .card::before{
+    content:"";position:absolute;left:0;top:0;width:100%;height:2px;
+    background:linear-gradient(90deg,transparent,#a5dcff,transparent);
+    opacity:.75;
+  }
+  .card::after{
+    content:"❄";
+    position:absolute;right:14px;bottom:8px;
+    font-size:44px;color:rgba(170,220,255,.08);
+    pointer-events:none;
+  }
+  .card-head{display:flex;align-items:center;gap:12px;margin-bottom:13px;}
+  .card-icon{
+    font-size:26px;line-height:1;
+    filter:drop-shadow(0 0 12px rgba(140,210,255,.8));
+  }
+  .card-name{
+    font-size:20px;font-weight:800;letter-spacing:.18em;
+    color:#eaf7ff;
+    text-shadow:0 0 16px rgba(120,200,255,.5);
+  }
+  .card-desc{
+    font-size:14.5px;line-height:1.9;
+    color:#b9d9ee;letter-spacing:.03em;
+  }
+
+  .foot{
+    text-align:center;
+    margin-top:70px;
+    font-size:12.5px;letter-spacing:.3em;
+    color:#7fb4d6;opacity:.7;
+  }
+
+  /* ============ 音乐播放器 ============ */
+  .player{
+    position:fixed;
+    right:clamp(12px,2.5vw,28px);
+    bottom:clamp(12px,2.5vw,26px);
+    z-index:40;
+    display:flex;align-items:center;gap:14px;
+    width:min(388px, calc(100vw - 24px));
+    padding:12px 16px;
+    border-radius:22px;
+    background:linear-gradient(150deg, rgba(120,190,255,.18), rgba(8,26,48,.86));
+    border:1px solid rgba(160,215,255,.28);
+    backdrop-filter:blur(18px);
+    -webkit-backdrop-filter:blur(18px);
+    box-shadow:0 18px 48px rgba(0,10,25,.68), inset 0 1px 0 rgba(255,255,255,.16);
+  }
+
+  /* ====== 全新播放按钮 ====== */
+  .play-btn{
+    flex:0 0 auto;
+    width:52px;
+    height:52px;
+    border-radius:50%;
+    border:1px solid rgba(170,220,255,.35);
+    cursor:pointer;
+    display:grid;
+    place-items:center;
+    position:relative;
+    padding:0;
+    background:
+      linear-gradient(145deg, rgba(200,235,255,.18), rgba(70,140,210,.08));
+    backdrop-filter:blur(10px);
+    -webkit-backdrop-filter:blur(10px);
+    color:#e8f6ff;
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,.28),
+      inset 0 -1px 0 rgba(0,40,80,.25),
+      0 8px 22px rgba(0,15,35,.5);
+    transition:
+      transform .35s cubic-bezier(.16,1,.3,1),
+      box-shadow .35s ease,
+      border-color .35s ease,
+      background .35s ease;
+  }
+  .play-btn svg{
+    width:18px;
+    height:18px;
+    fill:currentColor;
+    filter:drop-shadow(0 0 6px rgba(160,225,255,.85));
+    transition:transform .3s ease, filter .3s ease;
+  }
+  .play-btn .icon-play{
+    display:block;
+    transform:translateX(1px);
+  }
+  .play-btn .icon-pause{display:none;}
+  .play-btn.playing .icon-play{display:none;}
+  .play-btn.playing .icon-pause{display:block;}
+
+  .play-btn:hover{
+    transform:scale(1.07);
+    border-color:rgba(200,238,255,.65);
+    background:linear-gradient(145deg, rgba(220,245,255,.32), rgba(90,160,225,.16));
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,.4),
+      inset 0 -1px 0 rgba(0,40,80,.3),
+      0 10px 28px rgba(0,15,35,.6),
+      0 0 26px rgba(130,205,255,.65);
+  }
+  .play-btn:hover svg{
+    filter:drop-shadow(0 0 12px rgba(190,235,255,1));
+  }
+  .play-btn:active{
+    transform:scale(.94);
+    transition-duration:.1s;
+  }
+  .play-btn:focus-visible{
+    outline:2px solid rgba(160,220,255,.7);
+    outline-offset:3px;
+  }
+
+  .player-main{flex:1 1 auto;min-width:0;}
+  .song-name{
+    font-size:12.5px;
+    letter-spacing:.05em;
+    color:#d5ecff;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+    margin-bottom:1px;
+  }
+  .bar{
+    position:relative;
+    height:6px;
+    border-radius:99px;
+    margin:8px 0 5px;
+    background:rgba(160,215,255,.18);
+    cursor:pointer;
+    touch-action:none;
+    user-select:none;
+    -webkit-user-select:none;
+    transition:height .2s ease;
+  }
+  .bar:hover{height:8px;}
+  .bar-fill{
+    position:absolute;left:0;top:0;bottom:0;width:0%;
+    border-radius:99px;
+    background:linear-gradient(90deg,#7fd4ff,#e2f5ff);
+    box-shadow:0 0 16px rgba(120,210,255,.95);
+  }
+  .bar-dot{
+    position:absolute;top:50%;left:0;
+    width:13px;height:13px;border-radius:50%;
+    transform:translate(-50%,-50%);
+    background:#ffffff;
+    box-shadow:0 0 14px rgba(160,225,255,1);
+    pointer-events:none;
+    transition:width .2s ease, height .2s ease;
+  }
+  .bar:hover .bar-dot{width:15px;height:15px;}
+  .times{
+    display:flex;justify-content:space-between;
+    font-size:11px;
+    color:#9dc9e8;
+    font-variant-numeric:tabular-nums;
+    letter-spacing:.06em;
+  }
+
+  @media (max-width:640px){
+    .hud{padding:14px 16px;gap:10px;}
+    .brand h1{font-size:16px;letter-spacing:.08em;}
+    .brand p{font-size:10px;letter-spacing:.1em;margin-top:4px;}
+    .clock-label{display:none;}
+    .clock-time{font-size:21px;}
+    .clock-date{font-size:13px;margin-top:2px;}
+    .content{padding:88px 16px 175px;}
+    .sec-head{padding:1vh 0 4.5vh;}
+    .cards{grid-template-columns:1fr;gap:16px;}
+    .card{padding:18px 18px 20px;}
+    .card-name{font-size:18px;}
+    .card-desc{font-size:13.5px;line-height:1.85;}
+    .player{width:calc(100vw - 24px);gap:12px;padding:11px 14px;}
+    .play-btn{width:46px;height:46px;}
+    .play-btn svg{width:16px;height:16px;}
+  }
+</style>
+</head>
+<body>
+
+<canvas id="snow"></canvas>
+<div class="vignette"></div>
+
+<header class="hud">
+  <div class="brand">
+    <h1>暴风雪花过四边</h1>
+    <p>挺过暴风雪可以休息了</p>
+  </div>
+  <div class="clock">
+    <span class="clock-label">北京时间</span>
+    <div class="clock-time" id="time">--:--:--</div>
+    <div class="clock-date" id="date">----年--月--日</div>
+  </div>
+</header>
+
+<main>
+  <section class="content">
+    <div class="sec-head" id="secHead">
+      <h2 class="sec-title">学校基本操作</h2>
+      <p class="sec-sub">看我基本学校操作介绍</p>
+    </div>
+
+    <div class="cards" id="cards">
+
+      <article class="card">
+        <div class="card-head"><span class="card-icon">😴</span><span class="card-name">睡觉</span></div>
+        <p class="card-desc">每节课随机触发睡觉功能，不会触发睡觉功能的课分别是：信息（除了教室）、体育。</p>
+      </article>
+
+      <article class="card">
+        <div class="card-head"><span class="card-icon">🎭</span><span class="card-name">玩梗</span></div>
+        <p class="card-desc">在课堂上（除了信息和体育）随机触发玩梗，可能是新的，可能是几个月，可能是几十天，可能是几天。</p>
+      </article>
+
+      <article class="card">
+        <div class="card-head"><span class="card-icon">💢</span><span class="card-name">骂人</span></div>
+        <p class="card-desc">就是最容易触发的一次，这些特长会出现：祝福你、祝福你妈、祝福你爸、祝福你全家，其他的等。</p>
+      </article>
+
+      <article class="card">
+        <div class="card-head"><span class="card-icon">🚶</span><span class="card-name">流浪</span></div>
+        <p class="card-desc">只会流浪几处场景：教室、走廊、其他等。</p>
+      </article>
+
+      <article class="card">
+        <div class="card-head"><span class="card-icon">💧</span><span class="card-name">装水</span></div>
+        <p class="card-desc">不定时自动查询水的容量，查询到一半以下会自动触发装水功能。</p>
+      </article>
+
+      <article class="card">
+        <div class="card-head"><span class="card-icon">⚔️</span><span class="card-name">攻击</span></div>
+        <p class="card-desc">受到攻击会锁定攻击者追着攻击，有概率自动放弃攻击，但是会记仇。</p>
+      </article>
+
+    </div>
+
+    <div class="foot">❄ 暴风雪花过四边 · 挺过暴风雪可以休息了 ❄</div>
+  </section>
+</main>
+
+<div class="player">
+  <button class="play-btn" id="playBtn" aria-label="播放 / 暂停">
+    <svg class="icon-play" viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M8 5.14v13.72L19 12z"/>
+    </svg>
+    <svg class="icon-pause" viewBox="0 0 24 24" aria-hidden="true">
+      <rect x="6" y="5" width="4" height="14" rx="1"/>
+      <rect x="14" y="5" width="4" height="14" rx="1"/>
+    </svg>
+  </button>
+  <div class="player-main">
+    <div class="song-name" id="songName">忘川彼岸 (DJ名龙版)</div>
+    <div class="bar" id="bar">
+      <div class="bar-fill" id="fill"></div>
+      <div class="bar-dot" id="dot"></div>
+    </div>
+    <div class="times"><span id="cur">0:00</span><span id="dur">0:00</span></div>
+  </div>
+</div>
+
+<audio id="audio" preload="metadata">
+  <source id="audioSource" src="" type="audio/mpeg">
+</audio>
+
+<script>
+(function () {
+  'use strict';
+
+  /* ================= 雪花特效 ================= */
+  const canvas = document.getElementById('snow');
+  const ctx = canvas.getContext('2d');
+  let W = 0, H = 0, flakes = [], windT = 0, wind = 0;
+
+  function makeFlake(initial) {
+    const depth = Math.random();
+    return {
+      x: Math.random() * W,
+      y: initial ? Math.random() * H : -20,
+      r: 0.8 + depth * 2.8,
+      sp: 0.35 + depth * 1.7,
+      drift: (Math.random() - 0.5) * 0.45,
+      sway: Math.random() * Math.PI * 2,
+      swaySp: 0.005 + Math.random() * 0.016,
+      alpha: 0.22 + depth * 0.68
+    };
+  }
+
+  function initFlakes() {
+    const count = Math.max(60, Math.min(280, Math.floor((W * H) / 9000)));
+    flakes = [];
+    for (let i = 0; i < count; i++) flakes.push(makeFlake(true));
+  }
+
+  function resize() {
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    W = window.innerWidth;
+    H = window.innerHeight;
+    canvas.width = Math.floor(W * dpr);
+    canvas.height = Math.floor(H * dpr);
+    canvas.style.width = W + 'px';
+    canvas.style.height = H + 'px';
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    initFlakes();
+  }
+
+  function drawSnow() {
+    windT += 0.006;
+    wind = Math.sin(windT) * 1.5 + Math.sin(windT * 0.37) * 0.9;
+    ctx.clearRect(0, 0, W, H);
+    for (let i = 0; i < flakes.length; i++) {
+      const f = flakes[i];
+      f.sway += f.swaySp;
+      f.y += f.sp;
+      f.x += f.drift + wind * (0.25 + f.r * 0.22) + Math.sin(f.sway) * 0.65;
+      if (f.y > H + 12) { flakes[i] = makeFlake(false); flakes[i].y = -12; continue; }
+      if (f.x < -40) f.x = W + 30;
+      else if (f.x > W + 40) f.x = -30;
+      ctx.beginPath();
+      ctx.arc(f.x, f.y, f.r, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(232,246,255,' + f.alpha + ')';
+      ctx.fill();
+    }
+    requestAnimationFrame(drawSnow);
+  }
+
+  window.addEventListener('resize', resize);
+  resize();
+  drawSnow();
+
+  /* ================= 北京时间 ================= */
+  const timeEl = document.getElementById('time');
+  const dateEl = document.getElementById('date');
+  const WEEK = ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六'];
+  function pad(n) { return n < 10 ? '0' + n : '' + n; }
+  function updateClock() {
+    const now = new Date();
+    const bj = new Date(now.getTime() + (now.getTimezoneOffset() + 480) * 60000);
+    timeEl.textContent = pad(bj.getHours()) + ':' + pad(bj.getMinutes()) + ':' + pad(bj.getSeconds());
+    dateEl.textContent = bj.getFullYear() + '年' + (bj.getMonth() + 1) + '月' + bj.getDate() + '日 ' + WEEK[bj.getDay()];
+  }
+  updateClock();
+  setInterval(updateClock, 1000);
+
+  /* ================= 进场动画 ================= */
+  const secHead = document.getElementById('secHead');
+  const cardList = Array.prototype.slice.call(document.querySelectorAll('.card'));
+  cardList.forEach(function (c, i) {
+    c.style.setProperty('--d', (i * 0.09).toFixed(2) + 's');
+  });
+  requestAnimationFrame(function () {
+    setTimeout(function () { secHead.classList.add('show'); }, 120);
+  });
+  const io = new IntersectionObserver(function (entries) {
+    entries.forEach(function (entry) {
+      if (!entry.isIntersecting) return;
+      entry.target.classList.add('show');
+      if (entry.target.classList.contains('card')) {
+        const idx = cardList.indexOf(entry.target);
+        setTimeout(function () { entry.target.style.transitionDelay = '0s'; }, 950 + Math.max(0, idx) * 90);
+      }
+      io.unobserve(entry.target);
+    });
+  }, { threshold: 0.12, rootMargin: '0px 0px -30px 0px' });
+  cardList.forEach(function (c) { io.observe(c); });
+
+  /* ================= 音乐播放器 ================= */
+  const audio      = document.getElementById('audio');
+  const source     = document.getElementById('audioSource');
+  const playBtn    = document.getElementById('playBtn');
+  const bar        = document.getElementById('bar');
+  const fill       = document.getElementById('fill');
+  const dot        = document.getElementById('dot');
+  const curEl      = document.getElementById('cur');
+  const durEl      = document.getElementById('dur');
+  const songNameEl = document.getElementById('songName');
+
+  let dragging = false;
+  let ready = false;
+
+  /* 音频文件名：与文件夹中的 MP3 完全一致 */
+  const AUDIO_NAME = '忘川彼岸 (DJ名龙版)';
+
+  /* 候选列表：主文件 + 兜底 */
+  const candidates = [
+    { src: AUDIO_NAME + '.mp3', type: 'audio/mpeg' },
+    { src: 'music.mp3',        type: 'audio/mpeg' }
+  ];
+
+  let triedIdx = 0;
+
+  function fmt(sec) {
+    if (!isFinite(sec) || sec < 0) return '0:00';
+    const m = Math.floor(sec / 60);
+    const s = Math.floor(sec % 60);
+    return m + ':' + (s < 10 ? '0' + s : s);
+  }
+
+  function render() {
+    const d = audio.duration || 0;
+    const c = audio.currentTime || 0;
+    if (!dragging) {
+      const p = d > 0 ? (c / d) * 100 : 0;
+      fill.style.width = p + '%';
+      dot.style.left = p + '%';
+    }
+    curEl.textContent = fmt(c);
+    durEl.textContent = fmt(d);
+  }
+
+  function seekTo(clientX) {
+    const rect = bar.getBoundingClientRect();
+    let p = (clientX - rect.left) / rect.width;
+    p = Math.max(0, Math.min(1, p));
+    fill.style.width = (p * 100) + '%';
+    dot.style.left = (p * 100) + '%';
+    if (audio.duration) audio.currentTime = p * audio.duration;
+    curEl.textContent = fmt(p * (audio.duration || 0));
+  }
+
+  bar.addEventListener('pointerdown', function (e) {
+    dragging = true;
+    try { bar.setPointerCapture(e.pointerId); } catch (err) {}
+    seekTo(e.clientX);
+    e.preventDefault();
+  });
+  bar.addEventListener('pointermove', function (e) {
+    if (dragging) seekTo(e.clientX);
+  });
+  function endDrag(e) {
+    if (!dragging) return;
+    dragging = false;
+    try { bar.releasePointerCapture(e.pointerId); } catch (err) {}
+  }
+  bar.addEventListener('pointerup', endDrag);
+  bar.addEventListener('pointercancel', endDrag);
+
+  /* ---------- 加载候选文件 ---------- */
+  function loadNextCandidate() {
+    if (triedIdx >= candidates.length) {
+      songNameEl.textContent = '未找到音乐：请确认文件名为 ' + AUDIO_NAME + '.mp3';
+      return;
+    }
+    const c = candidates[triedIdx++];
+    source.src = encodeURI(c.src);
+    source.type = c.type;
+    audio.load();
+  }
+
+  /* ---------- 音频事件 ---------- */
+  audio.addEventListener('loadedmetadata', function () {
+    if (audio.duration && isFinite(audio.duration) && audio.duration > 0) {
+      ready = true;
+      songNameEl.textContent = AUDIO_NAME;
+      render();
+    }
+  });
+
+  audio.addEventListener('durationchange', function () {
+    if (!ready && audio.duration && isFinite(audio.duration) && audio.duration > 0) {
+      ready = true;
+      songNameEl.textContent = AUDIO_NAME;
+    }
+    render();
+  });
+
+  audio.addEventListener('timeupdate', render);
+
+  audio.addEventListener('play', function () {
+    playBtn.classList.add('playing');
+  });
+  audio.addEventListener('pause', function () {
+    playBtn.classList.remove('playing');
+  });
+  audio.addEventListener('ended', function () {
+    playBtn.classList.remove('playing');
+    fill.style.width = '0%';
+    dot.style.left = '0%';
+  });
+
+  audio.addEventListener('error', function () {
+    if (!ready) loadNextCandidate();
+  });
+
+  /* ---------- 播放控制 ---------- */
+  function tryPlay() {
+    if (!ready) {
+      triedIdx = 0;
+      loadNextCandidate();
+      songNameEl.textContent = '正在加载音乐…';
+      return;
+    }
+    const p = audio.play();
+    if (p && p.catch) {
+      p.catch(function (err) {
+        playBtn.classList.remove('playing');
+        if (err.name === 'NotAllowedError') {
+          songNameEl.textContent = '请先点击页面任意位置';
+        } else {
+          songNameEl.textContent = '播放失败，请重试';
+        }
+      });
+    }
+  }
+
+  playBtn.addEventListener('click', function () {
+    if (audio.paused) tryPlay();
+    else audio.pause();
+  });
+
+  document.addEventListener('keydown', function (e) {
+    if (e.code === 'Space' && (e.target === document.body || e.target === document.documentElement)) {
+      e.preventDefault();
+      playBtn.click();
+    }
+  });
+
+  loadNextCandidate();
+  render();
+
+})();
+</script>
+</body>
+</html>
